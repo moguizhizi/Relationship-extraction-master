@@ -1,0 +1,2 @@
+model_checkpoint_path: "/sk/relation_extract/Relationship-extraction-master/model/ATT_GRU_model-9800"
+all_model_checkpoint_paths: "/sk/relation_extract/Relationship-extraction-master/model/ATT_GRU_model-9800"
