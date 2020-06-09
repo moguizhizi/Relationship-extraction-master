@@ -1,1 +1,1 @@
-# Relationship-extraction-master
+详见关系抽取指导手册
