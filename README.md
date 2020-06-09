@@ -4,4 +4,4 @@
 
 vec.txt:谷歌公开词向量集
 
-模型了参照paper文件夹下两篇论文;亦包含对应的总结
+模型了参照paper文件夹下两篇论文（Attention-Based Bidirectional Long Short-Term Memory Networks for Relation Classification，Neural Relation Extraction with Selective Attention over Instances）;亦包含对应的总结
