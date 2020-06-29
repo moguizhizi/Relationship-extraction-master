@@ -9,7 +9,7 @@ class Settings(object):
         # 训练集的训练次数
         self.num_epochs = 10
         # 关系种类的总数
-        self.num_classes = 12
+        self.num_classes = 5
         # 隐藏层的神经元数量
         self.gru_size = 230
         self.keep_prob = 0.5

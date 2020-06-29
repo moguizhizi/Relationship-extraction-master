@@ -45,10 +45,10 @@ def get_args_parser():
     group2.add_argument('-regularizer', type=float, default=0.0001,
                         help='Regularizer')
 
-    group2.add_argument('-num_train_epochs', type=int, default=10,
+    group2.add_argument('-num_train_epochs', type=int, default=50,
                         help='Total number of training epochs to perform.')
 
-    group2.add_argument('-begin_save_steps', type=int, default=8000,
+    group2.add_argument('-begin_save_steps', type=int, default=6000,
                         help='Save model data from step')
 
 

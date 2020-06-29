@@ -2,9 +2,11 @@ import tensorflow as tf
 import numpy as np
 import datetime
 import network
+import os
+import shutil
 
 from base.helper.args import get_args_parser
-from base.helper.constant import PATH_NAME_PREFIX
+from base.helper.constant import PATH_NAME_PREFIX, MODEL_DIR
 from base.helper.constant import MAX_SENTENCE_LENGTH
 from base.helper.common import get_relation_num
 
@@ -14,6 +16,10 @@ tf.app.flags.DEFINE_string('summary_dir', '.', 'path to store summary')
 
 
 def main(_):
+
+    if os.path.isdir(MODEL_DIR):
+        shutil.rmtree(MODEL_DIR)
+
     args = get_args_parser()
 
     print('reading wordembedding')
