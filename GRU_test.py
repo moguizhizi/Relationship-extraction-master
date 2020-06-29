@@ -54,10 +54,10 @@ def main(_):
                 print(time_str)
                 print('Evaluating all test data and save data for PR curve')
 
-                test_y = np.load('./data/testall_y.npy')
-                test_word = np.load('./data/testall_word.npy')
-                test_pos1 = np.load('./data/testall_pos1.npy')
-                test_pos2 = np.load('./data/testall_pos2.npy')
+                test_y = np.load('./data/testall_y.npy',allow_pickle=True)
+                test_word = np.load('./data/testall_word.npy',allow_pickle=True)
+                test_pos1 = np.load('./data/testall_pos1.npy',allow_pickle=True)
+                test_pos2 = np.load('./data/testall_pos2.npy',allow_pickle=True)
                 allprob = []
                 acc = []
                 for i in range(int(len(test_word) / float(test_settings.big_num))):
@@ -76,7 +76,7 @@ def main(_):
                 current_step = model_iter
 
                 np.save('./out/allprob_iter_' + str(current_step) + '.npy', allprob)
-                allans = np.load('./data/allans.npy')
+                allans = np.load('./data/allans.npy',allow_pickle=True)
 
                 # caculate the pr curve area
                 average_precision = average_precision_score(allans, allprob)
