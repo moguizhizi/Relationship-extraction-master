@@ -46,7 +46,7 @@ def main(_):
 
     pathname = PATH_NAME_PREFIX + "-" + str(model_id)
     
-    wordembedding = np.load('./data/vec.npy')
+    wordembedding = np.load('./data/vec.npy',allow_pickle=True)
     predict_settings = network.Settings()
     predict_settings.vocab_size = len(wordembedding)
     predict_settings.num_classes = get_relation_num(args.rel_id_file)
