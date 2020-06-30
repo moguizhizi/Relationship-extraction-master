@@ -1,5 +1,8 @@
 import numpy as np
+import os
+import codecs
 from base.helper.args import get_args_parser
+
 
 
 # embedding the position
@@ -22,9 +25,54 @@ def find_index(x, y):
             return i
     return flag
 
+def delete_repeat(filename, filetempname):
+
+    if os.path.exists(filetempname):
+        os.remove(filetempname)
+
+    fin = open(filename, 'r', encoding='utf-8')
+    fout = codecs.open(filetempname, 'w', 'utf-8')
+
+    entity_pair = {}
+
+    while True:
+        content = fin.readline()
+        is_write = True
+        if content == '':
+            break
+
+        content = content.strip().split()
+        en1 = content[0]
+        en2 = content[1]
+        sentence = content[3]
+        sentence = sentence.strip()
+        tup = (en1, en2)
+
+        if tup not in entity_pair:
+            entity_pair[tup] = []
+            entity_pair[tup].append(sentence)
+        else:
+            for temp_sen in entity_pair[tup]:
+                temp_sen = temp_sen.strip()
+                if temp_sen == sentence:
+                    is_write = False
+
+        if is_write == True:
+            record = str(en1) + " " + str(en2) + " " + str(content[2]) + " " + str(sentence)
+            fout.write(record)
+            fout.write('\n')
+
+    fin.close()
+    fout.close()
+
+    os.remove(filename)
+    os.rename(filetempname,filename)
 
 # reading data
 def init():
+
+    delete_repeat('./origin_data/test.txt', './origin_data/test_temp.txt')
+    delete_repeat('./origin_data/train.txt', './origin_data/train_temp.txt')
 
     args = get_args_parser()
 
@@ -225,10 +273,6 @@ def init():
     f = open('./data/train_q&a.txt', 'w', encoding='utf-8')
     temp = 0
 
-    # for key, value in train_sen.items():
-    #     print("key:" + str(key))
-    #     print("value:" + str(value))
-
     for i in train_sen:
         # print("train_ans[i]:" + str(train_ans[i]))
         # print("train_sen[i]:" + str(train_sen[i]))
@@ -269,9 +313,6 @@ def init():
     np.save('./data/train_y.npy', train_y)
     np.save('./data/testall_x.npy', test_x)
     np.save('./data/testall_y.npy', test_y)
-
-   
-
 
 def seperate():
     print('reading training data')
@@ -343,8 +384,6 @@ def seperate():
     np.save('./data/testall_pos1.npy', test_pos1)
     np.save('./data/testall_pos2.npy', test_pos2)
 
-
-
 # get answer metric for PR curve evaluation
 def getans():
     test_y = np.load('./data/testall_y.npy',allow_pickle=True)
@@ -376,3 +415,4 @@ init()
 seperate()
 getans()
 get_metadata()
+
