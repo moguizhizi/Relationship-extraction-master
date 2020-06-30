@@ -76,7 +76,9 @@ def main(_):
                 current_step = model_iter
 
                 np.save('./out/allprob_iter_' + str(current_step) + '.npy', allprob)
-                allans = np.load('./data/allans.npy',allow_pickle=True)
+                temp_allans = np.load('./data/allans.npy',allow_pickle=True)
+
+                allans = temp_allans[0:allprob.shape[0]]
 
                 # caculate the pr curve area
                 average_precision = average_precision_score(allans, allprob)
