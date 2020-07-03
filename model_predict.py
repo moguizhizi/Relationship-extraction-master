@@ -6,6 +6,7 @@ import network
 import codecs
 import pandas as pd
 import os
+import sys
 
 from base.helper.constant import MODEL_ID_FILE
 from base.helper.constant import PATH_NAME_PREFIX
@@ -53,13 +54,22 @@ def main(_):
     predict_settings.big_num = 1
     predict_settings.num_steps = args.max_sentence_len
     predict_settings.regularizer = args.regularizer
+
+    if args.cell == 'gru':
+        predict_settings.cell_type = network.RNN__CELL_TYPE.GRU
+    elif args.cell == 'lstm':
+        predict_settings.cell_type = network.RNN__CELL_TYPE.LSTM
+    else:
+        print("rnn cell type is error")
+        sys.exit()
     
     with tf.Graph().as_default():
         sess = tf.Session()
         with sess.as_default():
 
             with tf.variable_scope("model"):
-                mpredict = network.GRU(is_training=False, word_embeddings=wordembedding, settings=predict_settings, session=sess)
+                mpredict = network.RNN_MODEL(is_training=False, word_embeddings=wordembedding, settings=predict_settings, session=sess)
+                mpredict.construct_model()
 
             names_to_vars = {v.op.name: v for v in tf.global_variables()}
             saver = tf.train.Saver(names_to_vars)
