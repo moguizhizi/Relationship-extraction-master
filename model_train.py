@@ -4,6 +4,7 @@ import datetime
 import network
 import os
 import shutil
+import sys
 
 from base.helper.args import get_args_parser
 from base.helper.constant import PATH_NAME_PREFIX, MODEL_DIR
@@ -40,6 +41,14 @@ def main(_):
     settings.regularizer =args.regularizer
     settings.num_epochs = args.num_train_epochs
 
+    if args.cell == 'gru':
+        settings.cell_type = network.RNN__CELL_TYPE.GRU
+    elif args.cell == 'lstm':
+        settings.cell_type = network.RNN__CELL_TYPE.LSTM
+    else:
+        print("rnn cell type is error")
+        sys.exit()
+
     big_num = settings.big_num
 
     with tf.Graph().as_default():
@@ -49,9 +58,10 @@ def main(_):
 
             initializer = tf.contrib.layers.xavier_initializer()
             with tf.variable_scope("model", reuse=None, initializer=initializer):
-                m = network.GRU(is_training=True, word_embeddings=wordembedding, settings=settings, session=sess)
+                m = network.RNN_MODEL(is_training=True, word_embeddings=wordembedding, settings=settings, session=sess)
+                m.construct_model()
             global_step = tf.Variable(0, name="global_step", trainable=False)
-            optimizer = tf.train.AdamOptimizer(m.lr)
+            optimizer = tf.train.AdamOptimizer(m.settings.lr)
 
             train_op = optimizer.minimize(m.final_loss, global_step=global_step)
             sess.run(tf.global_variables_initializer())

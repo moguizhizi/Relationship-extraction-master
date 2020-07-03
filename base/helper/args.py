@@ -48,8 +48,11 @@ def get_args_parser():
     group2.add_argument('-num_train_epochs', type=int, default=50,
                         help='Total number of training epochs to perform.')
 
-    group2.add_argument('-begin_save_steps', type=int, default=6000,
+    group2.add_argument('-begin_save_steps', type=int, default=4000,
                         help='Save model data from step')
+
+    group2.add_argument('-cell', type=str, default='gru',
+                        help='which rnn cell used.')
 
 
 
