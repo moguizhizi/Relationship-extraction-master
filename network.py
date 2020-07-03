@@ -118,6 +118,7 @@ class RNN_MODEL:
 
         # word-level attention layer
         output_h = tf.add(output_forward, output_backward)
+
         attention_r = tf.reshape(tf.matmul(tf.reshape(tf.nn.softmax(
             tf.reshape(tf.matmul(
                 tf.reshape(tf.tanh(output_h), [self.total_num * self.settings.num_steps, self.settings.hidden_unit]),
@@ -308,6 +309,16 @@ class RNN_MODEL:
             cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, output_keep_prob=self.settings.keep_prob)
             cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, output_keep_prob=self.settings.keep_prob)
         return cell_fw, cell_bw
+
+    def _dir_rnn(self):
+        """
+        单向RNN
+        :return:
+        """
+        cell_single_fw = self._witch_cell()
+        if self.is_training and self.settings.keep_prob < 1:
+            cell_single_fw = tf.contrib.rnn.DropoutWrapper(cell_single_fw, output_keep_prob=self.settings.keep_prob)
+        return cell_single_fw
 
 class Batch:
     def __init__(self, word_batch, pos1_batch, pos2_batch, relation_batch):
