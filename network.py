@@ -67,57 +67,12 @@ class RNN_MODEL:
                                              [self.settings.num_classes, self.settings.hidden_unit])
         sen_d = tf.get_variable('bias_d', [self.settings.num_classes])
 
-        rnn_cell_forward, rnn_cell_backward = self._bi_dir_rnn()
-
-        cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_cell_forward] * self.settings.num_layers)
-        cell_backward = tf.contrib.rnn.MultiRNNCell([rnn_cell_backward] * self.settings.num_layers)
-
         sen_repre = []
         sen_alpha = []
         sen_s = []
         sen_out = []
 
-        self._initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
-        self._initial_state_backward = cell_backward.zero_state(self.total_num, tf.float32)
-
-        # embedding layer
-        inputs_forward = tf.concat(axis=2, values=[tf.nn.embedding_lookup(word_embedding, self.input_word),
-                                                   tf.nn.embedding_lookup(pos1_embedding, self.input_pos1),
-                                                   tf.nn.embedding_lookup(pos2_embedding, self.input_pos2)])
-
-        inputs_backward = tf.concat(axis=2,
-                                    values=[tf.nn.embedding_lookup(word_embedding, tf.reverse(self.input_word, [1])),
-                                            tf.nn.embedding_lookup(pos1_embedding, tf.reverse(self.input_pos1, [1])),
-                                            tf.nn.embedding_lookup(pos2_embedding, tf.reverse(self.input_pos2, [1]))])
-
-        outputs_forward = []
-
-        state_forward = self._initial_state_forward
-
-        with tf.variable_scope('RNN_FORWARD') as scope:
-            for step in range(self.settings.num_steps):
-                if step > 0:
-                    scope.reuse_variables()
-                (cell_output_forward, state_forward) = cell_forward.call(inputs_forward[:, step, :], state_forward)
-                outputs_forward.append(cell_output_forward)
-
-        outputs_backward = []
-
-        state_backward = self._initial_state_backward
-        with tf.variable_scope('RNN_BACKWARD') as scope:
-            for step in range(self.settings.num_steps):
-                if step > 0:
-                    scope.reuse_variables()
-                (cell_output_backward, state_backward) = cell_backward.call(inputs_backward[:, step, :], state_backward)
-                outputs_backward.append(cell_output_backward)
-
-        output_forward = tf.reshape(tf.concat(axis=1, values=outputs_forward),
-                                    [self.total_num, self.settings.num_steps, self.settings.hidden_unit])
-        output_backward = tf.reverse(tf.reshape(tf.concat(axis=1, values=outputs_backward),
-                                                [self.total_num, self.settings.num_steps, self.settings.hidden_unit]), [1])
-
-        # word-level attention layer
-        output_h = tf.add(output_forward, output_backward)
+        output_h = self.get_word_feature(pos1_embedding, pos2_embedding, word_embedding)
 
         attention_r = tf.reshape(tf.matmul(tf.reshape(tf.nn.softmax(
             tf.reshape(tf.matmul(
@@ -173,6 +128,47 @@ class RNN_MODEL:
         self.final_loss = self.total_loss + self.l2_loss
         tf.summary.scalar('l2_loss', self.l2_loss)
         tf.summary.scalar('final_loss', self.final_loss)
+
+    def get_word_feature(self, pos1_embedding, pos2_embedding, word_embedding):
+
+        rnn_cell_forward, rnn_cell_backward = self._bi_dir_rnn()
+        cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_cell_forward] * self.settings.num_layers)
+        cell_backward = tf.contrib.rnn.MultiRNNCell([rnn_cell_backward] * self.settings.num_layers)
+        self._initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
+        self._initial_state_backward = cell_backward.zero_state(self.total_num, tf.float32)
+        # embedding layer
+        inputs_forward = tf.concat(axis=2, values=[tf.nn.embedding_lookup(word_embedding, self.input_word),
+                                                   tf.nn.embedding_lookup(pos1_embedding, self.input_pos1),
+                                                   tf.nn.embedding_lookup(pos2_embedding, self.input_pos2)])
+        inputs_backward = tf.concat(axis=2,
+                                    values=[tf.nn.embedding_lookup(word_embedding, tf.reverse(self.input_word, [1])),
+                                            tf.nn.embedding_lookup(pos1_embedding, tf.reverse(self.input_pos1, [1])),
+                                            tf.nn.embedding_lookup(pos2_embedding, tf.reverse(self.input_pos2, [1]))])
+        outputs_forward = []
+        state_forward = self._initial_state_forward
+        with tf.variable_scope('RNN_FORWARD') as scope:
+            for step in range(self.settings.num_steps):
+                if step > 0:
+                    scope.reuse_variables()
+                (cell_output_forward, state_forward) = cell_forward.call(inputs_forward[:, step, :], state_forward)
+                outputs_forward.append(cell_output_forward)
+        outputs_backward = []
+        state_backward = self._initial_state_backward
+        with tf.variable_scope('RNN_BACKWARD') as scope:
+            for step in range(self.settings.num_steps):
+                if step > 0:
+                    scope.reuse_variables()
+                (cell_output_backward, state_backward) = cell_backward.call(inputs_backward[:, step, :], state_backward)
+                outputs_backward.append(cell_output_backward)
+        output_forward = tf.reshape(tf.concat(axis=1, values=outputs_forward),
+                                    [self.total_num, self.settings.num_steps, self.settings.hidden_unit])
+        output_backward = tf.reverse(tf.reshape(tf.concat(axis=1, values=outputs_backward),
+                                                [self.total_num, self.settings.num_steps, self.settings.hidden_unit]),
+                                     [1])
+        # word-level attention layer
+        output_h = tf.add(output_forward, output_backward)
+
+        return output_h
 
     def process(self,word_batch, pos1_batch, pos2_batch, y_batch):
 
