@@ -31,6 +31,7 @@ def main(_):
     test_settings.num_classes = get_relation_num(args.rel_id_file)
     test_settings.big_num = args.batch_size
     test_settings.regularizer = args.regularizer
+    test_settings.num_steps = args.max_sentence_len
 
     if args.cell == 'gru':
         test_settings.cell_type = network.RNN__CELL_TYPE.GRU

@@ -112,7 +112,6 @@ def init():
         relation2id[content[0]] = int(content[1])
     f.close()
 
-    # length of sentence is 70
     fixlen = args.max_sentence_len
     # max length of position embedding is 60 (-60~+60)
     maxlen = 60
@@ -139,6 +138,7 @@ def init():
             relation = relation2id[content[2]]
         # put the same entity pair sentences into a dict
         tup = (en1, en2)
+
         label_tag = 0
         if tup not in train_sen:
             train_sen[tup] = []
@@ -151,7 +151,6 @@ def init():
             train_ans[tup].append(label)
         else:
             y_id = relation
-            label_tag = 0
             label = [0 for i in range(len(relation2id))]
             label[y_id] = 1
 
@@ -176,6 +175,8 @@ def init():
         en2pos = sentence.find(en2)
         if en2pos == -1:
             en2post = 0
+
+        entity_vec = get_entity_vec(en1, en2, args.max_entities_len, word2id)
         
         output = []
 
@@ -184,7 +185,12 @@ def init():
             word = word2id['BLANK']
             rel_e1 = pos_embed(i - en1pos)
             rel_e2 = pos_embed(i - en2pos)
-            output.append([word, rel_e1, rel_e2])
+            temp = []
+            temp.append(word)
+            temp.append(rel_e1)
+            temp.append(rel_e2)
+            temp.append(entity_vec)
+            output.append(temp)
 
         for i in range(min(fixlen, len(sentence))):
             word = 0
@@ -195,7 +201,6 @@ def init():
             output[i][0] = word
 
         train_sen[tup][label_tag].append(output)
-        # print("train_sen:" + str(train_sen))
 
     print('reading test data ...')
 
@@ -274,8 +279,6 @@ def init():
     temp = 0
 
     for i in train_sen:
-        # print("train_ans[i]:" + str(train_ans[i]))
-        # print("train_sen[i]:" + str(train_sen[i]))
         if len(train_ans[i]) != len(train_sen[i]):
             print('ERROR')
         lenth = len(train_ans[i])
@@ -321,35 +324,42 @@ def seperate():
     train_word = []
     train_pos1 = []
     train_pos2 = []
+    train_entities = []
 
     print('seprating train data')
     for i in range(len(x_train)):
         word = []
         pos1 = []
         pos2 = []
-        # print("x_train:" + str(x_train[i]))
+        entities = []
         for j in x_train[i]:
             temp_word = []
             temp_pos1 = []
             temp_pos2 = []
+            temp_entities = []
             for k in j:
                 temp_word.append(k[0])
                 temp_pos1.append(k[1])
                 temp_pos2.append(k[2])
+                temp_entities = k[3]
             word.append(temp_word)
             pos1.append(temp_pos1)
             pos2.append(temp_pos2)
+            entities.append(temp_entities)
         train_word.append(word)
         train_pos1.append(pos1)
         train_pos2.append(pos2)
+        train_entities.append(entities)
 
     train_word = np.array(train_word)
     train_pos1 = np.array(train_pos1)
     train_pos2 = np.array(train_pos2)
-    # print("train_word:" + str(train_word))
+    train_entities = np.array(train_entities)
+
     np.save('./data/train_word.npy', train_word)
     np.save('./data/train_pos1.npy', train_pos1)
     np.save('./data/train_pos2.npy', train_pos2)
+    np.save('./data/train_entities.npy', train_entities)
 
     print('seperating test all data')
     x_test = np.load('./data/testall_x.npy',allow_pickle=True)
@@ -409,6 +419,24 @@ def get_metadata():
         fwrite.write(name + '\n')
     f.close()
     fwrite.close()
+
+def get_entity_vec(entity_h, entity_t, length, word2id):
+    entitis = str(entity_h) + " " + str(entity_t)
+    standard_entitis = []
+    for i in range(length):
+        word = word2id['BLANK']
+        standard_entitis.append(word)
+
+    for i in range(min(length, len(entitis))):
+        word = 0
+        if entitis[i] not in word2id:
+            word = word2id['UNK']
+        else:
+            word = word2id[entitis[i]]
+
+        standard_entitis[i] = word
+
+    return  standard_entitis
 
 
 init()

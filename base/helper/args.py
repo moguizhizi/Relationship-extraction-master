@@ -39,8 +39,11 @@ def get_args_parser():
     group2.add_argument('-batch_size', type=int, default=50,
                         help='Total batch size for training, test and predict.')
 
-    group2.add_argument('-max_sentence_len', type=int, default=70,
+    group2.add_argument('-max_sentence_len', type=int, default=200,
                         help='Max the number of sentence word')
+
+    group2.add_argument('-max_entities_len', type=int, default=30,
+                        help='Max the number of entities word')
 
     group2.add_argument('-regularizer', type=float, default=0.0001,
                         help='Regularizer')
