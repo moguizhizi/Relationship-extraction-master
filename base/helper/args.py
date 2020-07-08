@@ -45,6 +45,12 @@ def get_args_parser():
     group2.add_argument('-max_entities_len', type=int, default=70,
                         help='Max the number of entities word')
 
+    group2.add_argument('-sen_sec_len', type=int, default=30,
+                        help='the length of the section')
+
+    group2.add_argument('-entity_sec_len', type=int, default=10,
+                        help='the length of the section')
+
     group2.add_argument('-regularizer', type=float, default=0.0001,
                         help='Regularizer')
 
