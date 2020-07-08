@@ -31,6 +31,7 @@ def main(_):
     train_word = np.load('./data/train_word.npy',allow_pickle=True)
     train_pos1 = np.load('./data/train_pos1.npy',allow_pickle=True)
     train_pos2 = np.load('./data/train_pos2.npy',allow_pickle=True)
+    train_entitis = np.load('./data/train_entities.npy',allow_pickle=True)
 
     settings = network.Settings()
     settings.vocab_size = len(wordembedding)
@@ -40,6 +41,7 @@ def main(_):
     settings.num_steps = args.max_sentence_len
     settings.regularizer =args.regularizer
     settings.num_epochs = args.num_train_epochs
+    settings.entities_len = args.max_entities_len
 
     if args.cell == 'gru':
         settings.cell_type = network.RNN__CELL_TYPE.GRU
@@ -70,7 +72,7 @@ def main(_):
             merged_summary = tf.summary.merge_all()
             summary_writer = tf.summary.FileWriter(FLAGS.summary_dir + '/train_loss', sess.graph)
 
-            def train_step(word_batch, pos1_batch, pos2_batch, y_batch, big_num):
+            def train_step(word_batch, pos1_batch, pos2_batch, y_batch, entitis_batch,big_num):
 
                 feed_dict = {}
                 total_shape = []
@@ -78,6 +80,7 @@ def main(_):
                 total_word = []
                 total_pos1 = []
                 total_pos2 = []
+                total_entities = []
                 for i in range(len(word_batch)):
                     total_shape.append(total_num)
                     total_num += len(word_batch[i])
@@ -87,17 +90,22 @@ def main(_):
                         total_pos1.append(pos1)
                     for pos2 in pos2_batch[i]:
                         total_pos2.append(pos2)
+                    for entitis in entitis_batch[i]:
+                        total_entities.append(entitis)
+
                 total_shape.append(total_num)
                 total_shape = np.array(total_shape)
                 total_word = np.array(total_word)
                 total_pos1 = np.array(total_pos1)
                 total_pos2 = np.array(total_pos2)
+                total_entities = np.array(total_entities)
 
                 feed_dict[m.total_shape] = total_shape
                 feed_dict[m.input_word] = total_word
                 feed_dict[m.input_pos1] = total_pos1
                 feed_dict[m.input_pos2] = total_pos2
                 feed_dict[m.input_y] = y_batch
+                feed_dict[m.input_entities] = total_entities
 
                 temp, step, loss, accuracy, summary, l2_loss, final_loss = sess.run(
                     [train_op, global_step, m.total_loss, m.accuracy, merged_summary, m.l2_loss, m.final_loss],
@@ -123,6 +131,7 @@ def main(_):
                     temp_pos1 = []
                     temp_pos2 = []
                     temp_y = []
+                    temp_entitis = []
 
                     temp_input = temp_order[i * settings.big_num:(i + 1) * settings.big_num]
                     for k in temp_input:
@@ -130,6 +139,7 @@ def main(_):
                         temp_pos1.append(train_pos1[k])
                         temp_pos2.append(train_pos2[k])
                         temp_y.append(train_y[k])
+                        temp_entitis.append(train_entitis[k])
                     num = 0
                     for single_word in temp_word:
                         num += len(single_word)
@@ -142,8 +152,9 @@ def main(_):
                     temp_pos1 = np.array(temp_pos1)
                     temp_pos2 = np.array(temp_pos2)
                     temp_y = np.array(temp_y)
+                    temp_entitis = np.array(temp_entitis)
 
-                    train_step(temp_word, temp_pos1, temp_pos2, temp_y, settings.big_num)
+                    train_step(temp_word, temp_pos1, temp_pos2, temp_y, temp_entitis, settings.big_num)
 
                     current_step = tf.train.global_step(sess, global_step)
                     if current_step >= args.begin_save_steps and current_step % 100 == 0:
