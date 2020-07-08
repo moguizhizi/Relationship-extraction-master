@@ -27,6 +27,8 @@ class Settings(object):
         self.regularizer = 0.0001
         # RNN类型
         self.cell_type = RNN__CELL_TYPE.GRU
+        # 实体对的长度
+        self.entities_len = 30
 
 
 class RNN_MODEL:
@@ -39,17 +41,16 @@ class RNN_MODEL:
         self.input_pos1 = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.num_steps], name='input_pos1')
         self.input_pos2 = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.num_steps], name='input_pos2')
         self.input_y = tf.placeholder(dtype=tf.float32, shape=[None, self.settings.num_classes], name='input_y')
+        self.input_entities = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.entities_len], name='input_entities')
         self.total_shape = tf.placeholder(dtype=tf.int32, shape=[self.settings.big_num + 1], name='total_shape')
         self.total_num = self.total_shape[-1]
+
 
         self.prob = []
         self.predictions = []
         self.loss = []
         self.accuracy = []
         self.total_loss = 0.0
-
-        self._initial_state_forward = None
-        self._initial_state_backward = None
 
         self.word_embeddings = word_embeddings
         self.is_training = is_training
@@ -74,11 +75,11 @@ class RNN_MODEL:
 
         output_h = self.get_word_feature(pos1_embedding, pos2_embedding, word_embedding)
 
-        attention_r = tf.reshape(tf.matmul(tf.reshape(tf.nn.softmax(
-            tf.reshape(tf.matmul(
-                tf.reshape(tf.tanh(output_h), [self.total_num * self.settings.num_steps, self.settings.hidden_unit]),
-                attention_w),
-                       [self.total_num, self.settings.num_steps])), [self.total_num, 1, self.settings.num_steps]), output_h),
+        words_weight = self.get_words_weight(attention_w, output_h)
+
+        self.temp_print(words_weight)
+
+        attention_r = tf.reshape(tf.matmul(words_weight, output_h),
             [self.total_num, self.settings.hidden_unit])
 
         # sentence-level attention layer
@@ -112,14 +113,11 @@ class RNN_MODEL:
                 else:
                     self.total_loss += self.loss[i]
 
-            # tf.summary.scalar('loss',self.total_loss)
-            # tf.scalar_summary(['loss'],[self.total_loss])
             with tf.name_scope("accuracy"):
                 self.accuracy.append(
                     tf.reduce_mean(tf.cast(tf.equal(self.predictions[i], tf.argmax(self.input_y[i], 0)), "float"),
                                    name="accuracy"))
 
-        # tf.summary.scalar('loss',self.total_loss)
         tf.summary.scalar('loss', self.total_loss)
         # regularization
         self.l2_loss = tf.contrib.layers.apply_regularization(
@@ -129,37 +127,51 @@ class RNN_MODEL:
         tf.summary.scalar('l2_loss', self.l2_loss)
         tf.summary.scalar('final_loss', self.final_loss)
 
+    def get_words_weight(self, attention_w, output_h):
+
+        words_weight = tf.reshape(tf.nn.softmax(
+            tf.reshape(tf.matmul(
+                tf.reshape(tf.tanh(output_h), [self.total_num * self.settings.num_steps, self.settings.hidden_unit]),
+                attention_w),
+                [self.total_num, self.settings.num_steps])), [self.total_num, 1, self.settings.num_steps])
+
+        return words_weight
+
     def get_word_feature(self, pos1_embedding, pos2_embedding, word_embedding):
 
         rnn_cell_forward, rnn_cell_backward = self._bi_dir_rnn()
         cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_cell_forward] * self.settings.num_layers)
         cell_backward = tf.contrib.rnn.MultiRNNCell([rnn_cell_backward] * self.settings.num_layers)
-        self._initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
-        self._initial_state_backward = cell_backward.zero_state(self.total_num, tf.float32)
+        initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
+        initial_state_backward = cell_backward.zero_state(self.total_num, tf.float32)
         # embedding layer
         inputs_forward = tf.concat(axis=2, values=[tf.nn.embedding_lookup(word_embedding, self.input_word),
                                                    tf.nn.embedding_lookup(pos1_embedding, self.input_pos1),
                                                    tf.nn.embedding_lookup(pos2_embedding, self.input_pos2)])
+
         inputs_backward = tf.concat(axis=2,
                                     values=[tf.nn.embedding_lookup(word_embedding, tf.reverse(self.input_word, [1])),
                                             tf.nn.embedding_lookup(pos1_embedding, tf.reverse(self.input_pos1, [1])),
                                             tf.nn.embedding_lookup(pos2_embedding, tf.reverse(self.input_pos2, [1]))])
+
         outputs_forward = []
-        state_forward = self._initial_state_forward
+        state_forward = initial_state_forward
         with tf.variable_scope('RNN_FORWARD') as scope:
             for step in range(self.settings.num_steps):
                 if step > 0:
                     scope.reuse_variables()
                 (cell_output_forward, state_forward) = cell_forward.call(inputs_forward[:, step, :], state_forward)
                 outputs_forward.append(cell_output_forward)
+
         outputs_backward = []
-        state_backward = self._initial_state_backward
+        state_backward = initial_state_backward
         with tf.variable_scope('RNN_BACKWARD') as scope:
             for step in range(self.settings.num_steps):
                 if step > 0:
                     scope.reuse_variables()
                 (cell_output_backward, state_backward) = cell_backward.call(inputs_backward[:, step, :], state_backward)
                 outputs_backward.append(cell_output_backward)
+
         output_forward = tf.reshape(tf.concat(axis=1, values=outputs_forward),
                                     [self.total_num, self.settings.num_steps, self.settings.hidden_unit])
         output_backward = tf.reverse(tf.reshape(tf.concat(axis=1, values=outputs_backward),
@@ -316,6 +328,22 @@ class RNN_MODEL:
             cell_single_fw = tf.contrib.rnn.DropoutWrapper(cell_single_fw, output_keep_prob=self.settings.keep_prob)
         return cell_single_fw
 
+
+    def get_relation_feature(self, word_embedding):
+        rnn_single_fw = self._dir_rnn()
+        cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_single_fw] * self.settings.num_layers)
+        initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
+
+        inputs_forward = tf.nn.embedding_lookup(word_embedding, self.input_entities)
+
+        state_forward = initial_state_forward
+        with tf.variable_scope('RELATION_RNN_FORWARD') as scope:
+            for step in range(self.settings.entities_len):
+                if step > 0:
+                    scope.reuse_variables()
+                (cell_output_forward, state_forward) = cell_forward.call(inputs_forward[:, step, :], state_forward)
+
+        return cell_output_forward
 class Batch:
     def __init__(self, word_batch, pos1_batch, pos2_batch, relation_batch):
         self.word_batch = word_batch

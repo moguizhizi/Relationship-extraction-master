@@ -42,7 +42,7 @@ def get_args_parser():
     group2.add_argument('-max_sentence_len', type=int, default=200,
                         help='Max the number of sentence word')
 
-    group2.add_argument('-max_entities_len', type=int, default=70,
+    group2.add_argument('-max_entities_len', type=int, default=32,
                         help='Max the number of entities word')
 
     group2.add_argument('-sen_sec_len', type=int, default=30,
