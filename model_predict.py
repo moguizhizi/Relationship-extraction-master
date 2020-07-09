@@ -102,7 +102,7 @@ def main(_):
                 pos_embedding = mpredict.get_pos_embedding(line, word2id)
                 batch = mpredict.get_batch(pos_embedding, relation2id)
                 prob, accuracy = mpredict.process(batch.word_batch, batch.pos1_batch, batch.pos2_batch,
-                                                  batch.relation_batch)
+                                                  batch.relation_batch, batch.entities_batch)
 
                 prob = np.reshape(np.array(prob), (1, predict_settings.num_classes))[0]
                 top1_id = prob.argsort()[-1:]

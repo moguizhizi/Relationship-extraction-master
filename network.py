@@ -245,12 +245,20 @@ class RNN_MODEL:
             en2pos = 0
         pos_embedding = []
         fixlen = self.settings.num_steps
-        # Encoding test x
+
+        entity_vec = self.get_entity_vec(en1, en2, self.settings.entities_len, word2id)
+
         for i in range(fixlen):
             word = word2id['BLANK']
             rel_e1 = self.pos_embed(i - en1pos)
             rel_e2 = self.pos_embed(i - en2pos)
-            pos_embedding.append([word, rel_e1, rel_e2])
+            temp = []
+            temp.append(word)
+            temp.append(rel_e1)
+            temp.append(rel_e2)
+            temp.append(entity_vec)
+            pos_embedding.append(temp)
+
         for i in range(min(fixlen, len(sentence))):
             word = 0
             if sentence[i] not in word2id:
@@ -282,29 +290,36 @@ class RNN_MODEL:
         word_batch = []
         pos1_batch = []
         pos2_batch = []
+        entities_batch = []
         for i in range(len(pos_embedding_patch)):
             word = []
             pos1 = []
             pos2 = []
+            entities = []
             for j in pos_embedding_patch[i]:
                 temp_word = []
                 temp_pos1 = []
                 temp_pos2 = []
+                temp_entities = []
                 for k in j:
                     temp_word.append(k[0])
                     temp_pos1.append(k[1])
                     temp_pos2.append(k[2])
+                    temp_entities = k[3]
                 word.append(temp_word)
                 pos1.append(temp_pos1)
                 pos2.append(temp_pos2)
+                entities.append(temp_entities)
             word_batch.append(word)
             pos1_batch.append(pos1)
             pos2_batch.append(pos2)
+            entities_batch.append(entities)
         word_batch = np.array(word_batch)
         pos1_batch = np.array(pos1_batch)
         pos2_batch = np.array(pos2_batch)
+        entities_batch = np.array(entities_batch)
 
-        batch = Batch(word_batch, pos1_batch, pos2_batch, relation_batch)
+        batch = Batch(word_batch, pos1_batch, pos2_batch, relation_batch, entities_batch)
 
         return batch
 
@@ -358,14 +373,35 @@ class RNN_MODEL:
 
         return cell_output_forward
 
+    def get_entity_vec(self, entity_h, entity_t, length, word2id):
+        entitis = str(entity_h) + " " + str(entity_t)
+        standard_entitis = []
+        for i in range(length):
+            word = word2id['BLANK']
+            standard_entitis.append(word)
+
+        for i in range(min(length, len(entitis))):
+            word = 0
+            if entitis[i] not in word2id:
+                word = word2id['UNK']
+            else:
+                word = word2id[entitis[i]]
+
+            standard_entitis[i] = word
+
+        return standard_entitis
+
+    def temp_print(self, tmp):
+        self.tmp = tmp
 
 
 class Batch:
-    def __init__(self, word_batch, pos1_batch, pos2_batch, relation_batch):
+    def __init__(self, word_batch, pos1_batch, pos2_batch, relation_batch, entities_batch):
         self.word_batch = word_batch
         self.pos1_batch = pos1_batch
         self.pos2_batch = pos2_batch
         self.relation_batch = relation_batch
+        self.entities_batch = entities_batch
 
 
 class RNN__CELL_TYPE(Enum):
