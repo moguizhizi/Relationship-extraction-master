@@ -33,6 +33,8 @@ class Settings(object):
         self.entities_len = 30
         # 权重类型
         self.weight_type = WEIGHT_TYPE.NORMAL
+        # 句子vec类型
+        self.representation_type = REPRESATATION_TYPE.VECTOR_SUM
 
 
 class RNN_MODEL:
@@ -81,10 +83,8 @@ class RNN_MODEL:
 
         words_weight = self.get_words_weight(attention_w, output_h, word_embedding, self.settings.weight_type)
 
-        attention_r = tf.reshape(tf.matmul(words_weight, output_h),
-                                 [self.total_num, self.settings.hidden_unit])
+        attention_r = self.get_sentence_representaion(words_weight, output_h)
 
-        # sentence-level attention layer
         for i in range(self.settings.big_num):
 
             sen_repre.append(tf.tanh(attention_r[self.total_shape[i]:self.total_shape[i + 1]]))
@@ -391,8 +391,19 @@ class RNN_MODEL:
 
         return standard_entitis
 
-    def temp_print(self, tmp):
-        self.tmp = tmp
+    def get_sentence_representaion(self, words_weight, output_h):
+
+        if self.settings.representation_type == REPRESATATION_TYPE.VECTOR_SUM:
+            attention_r = tf.reshape(tf.matmul(words_weight, output_h),
+                                     [self.total_num, self.settings.hidden_unit])
+        elif self.settings.representation_type == REPRESATATION_TYPE.MAX_POOLING:
+            temp = tf.transpose(output_h, perm=[0, 2, 1])
+            attention_r = tf.reduce_max(tf.multiply(words_weight, temp), 2)
+
+
+        return attention_r
+
+
 
 
 class Batch:
@@ -412,3 +423,8 @@ class RNN__CELL_TYPE(Enum):
 class WEIGHT_TYPE(Enum):
     NORMAL = 1
     RELATION = 2
+
+
+class REPRESATATION_TYPE(Enum):
+    VECTOR_SUM = 1
+    MAX_POOLING = 2
