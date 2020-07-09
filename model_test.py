@@ -50,6 +50,14 @@ def main(_):
         print("weight_type is error")
         sys.exit()
 
+    if args.repre == 'vector':
+        test_settings.representation_type = network.REPRESATATION_TYPE.VECTOR_SUM
+    elif args.repre == 'max':
+        test_settings.representation_type = network.REPRESATATION_TYPE.MAX_POOLING
+    else:
+        print("representation_type is error")
+        sys.exit()
+
     precision = {}
 
     with tf.Graph().as_default():

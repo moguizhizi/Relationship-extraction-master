@@ -64,7 +64,10 @@ def get_args_parser():
                         help='which rnn cell used.')
 
     group2.add_argument('-weight', type=str, default='normal',
-                        help='which rnn cell used.')
+                        help='relation info is used?')
+
+    group2.add_argument('-repre', type=str, default='vector',
+                        help='repre type')
 
 
 

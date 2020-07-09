@@ -59,6 +59,14 @@ def main(_):
         print("weight_type is error")
         sys.exit()
 
+    if args.repre == 'vector':
+        settings.representation_type = network.REPRESATATION_TYPE.VECTOR_SUM
+    elif args.repre == 'max':
+        settings.representation_type = network.REPRESATATION_TYPE.MAX_POOLING
+    else:
+        print("representation_type is error")
+        sys.exit()
+
     big_num = settings.big_num
 
     with tf.Graph().as_default():

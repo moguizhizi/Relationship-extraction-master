@@ -71,7 +71,15 @@ def main(_):
     else:
         print("weight_type is error")
         sys.exit()
-    
+
+    if args.repre == 'vector':
+        predict_settings.representation_type = network.REPRESATATION_TYPE.VECTOR_SUM
+    elif args.repre == 'max':
+        predict_settings.representation_type = network.REPRESATATION_TYPE.MAX_POOLING
+    else:
+        print("representation_type is error")
+        sys.exit()
+
     with tf.Graph().as_default():
         sess = tf.Session()
         with sess.as_default():
