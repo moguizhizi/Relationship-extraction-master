@@ -63,6 +63,9 @@ def get_args_parser():
     group2.add_argument('-cell', type=str, default='gru',
                         help='which rnn cell used.')
 
+    group2.add_argument('-weight', type=str, default='normal',
+                        help='which rnn cell used.')
+
 
 
 

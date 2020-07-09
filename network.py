@@ -1,6 +1,8 @@
-import tensorflow as tf
-import numpy as np
 from enum import Enum
+
+import numpy as np
+import tensorflow as tf
+
 
 class Settings(object):
     def __init__(self):
@@ -29,6 +31,8 @@ class Settings(object):
         self.cell_type = RNN__CELL_TYPE.GRU
         # 实体对的长度
         self.entities_len = 30
+        # 权重类型
+        self.weight_type = WEIGHT_TYPE.NORMAL
 
 
 class RNN_MODEL:
@@ -41,10 +45,10 @@ class RNN_MODEL:
         self.input_pos1 = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.num_steps], name='input_pos1')
         self.input_pos2 = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.num_steps], name='input_pos2')
         self.input_y = tf.placeholder(dtype=tf.float32, shape=[None, self.settings.num_classes], name='input_y')
-        self.input_entities = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.entities_len], name='input_entities')
+        self.input_entities = tf.placeholder(dtype=tf.int32, shape=[None, self.settings.entities_len],
+                                             name='input_entities')
         self.total_shape = tf.placeholder(dtype=tf.int32, shape=[self.settings.big_num + 1], name='total_shape')
         self.total_num = self.total_shape[-1]
-
 
         self.prob = []
         self.predictions = []
@@ -75,12 +79,10 @@ class RNN_MODEL:
 
         output_h = self.get_word_feature(pos1_embedding, pos2_embedding, word_embedding)
 
-        words_weight = self.get_words_weight(attention_w, output_h)
-
-        self.temp_print(words_weight)
+        words_weight = self.get_words_weight(attention_w, output_h, word_embedding, self.settings.weight_type)
 
         attention_r = tf.reshape(tf.matmul(words_weight, output_h),
-            [self.total_num, self.settings.hidden_unit])
+                                 [self.total_num, self.settings.hidden_unit])
 
         # sentence-level attention layer
         for i in range(self.settings.big_num):
@@ -127,13 +129,20 @@ class RNN_MODEL:
         tf.summary.scalar('l2_loss', self.l2_loss)
         tf.summary.scalar('final_loss', self.final_loss)
 
-    def get_words_weight(self, attention_w, output_h):
+    def get_words_weight(self, attention_w, output_h, word_embedding, weight_type):
+
+        if weight_type == WEIGHT_TYPE.NORMAL:
+            similar = tf.matmul(
+                tf.reshape(tf.tanh(output_h), [self.total_num * self.settings.num_steps, self.settings.hidden_unit]),
+                attention_w)
+        elif weight_type == WEIGHT_TYPE.RELATION:
+            relation_info = self.get_relation_feature(word_embedding)
+            similar = tf.matmul(tf.tanh(output_h),
+                                tf.reshape(relation_info, [self.total_num, self.settings.hidden_unit, 1]))
 
         words_weight = tf.reshape(tf.nn.softmax(
-            tf.reshape(tf.matmul(
-                tf.reshape(tf.tanh(output_h), [self.total_num * self.settings.num_steps, self.settings.hidden_unit]),
-                attention_w),
-                [self.total_num, self.settings.num_steps])), [self.total_num, 1, self.settings.num_steps])
+            tf.reshape(similar, [self.total_num, self.settings.num_steps])),
+            [self.total_num, 1, self.settings.num_steps])
 
         return words_weight
 
@@ -182,7 +191,7 @@ class RNN_MODEL:
 
         return output_h
 
-    def process(self,word_batch, pos1_batch, pos2_batch, y_batch):
+    def process(self, word_batch, pos1_batch, pos2_batch, y_batch, entities_batch):
 
         feed_dict = {}
         total_shape = []
@@ -190,6 +199,7 @@ class RNN_MODEL:
         total_word = []
         total_pos1 = []
         total_pos2 = []
+        total_entities = []
 
         for i in range(len(word_batch)):
             total_shape.append(total_num)
@@ -200,18 +210,22 @@ class RNN_MODEL:
                 total_pos1.append(pos1)
             for pos2 in pos2_batch[i]:
                 total_pos2.append(pos2)
+            for entities in entities_batch[i]:
+                total_entities.append(entities)
 
         total_shape.append(total_num)
         total_shape = np.array(total_shape)
         total_word = np.array(total_word)
         total_pos1 = np.array(total_pos1)
         total_pos2 = np.array(total_pos2)
+        total_entities = np.array(total_entities)
 
         feed_dict[self.total_shape] = total_shape
         feed_dict[self.input_word] = total_word
         feed_dict[self.input_pos1] = total_pos1
         feed_dict[self.input_pos2] = total_pos2
         feed_dict[self.input_y] = y_batch
+        feed_dict[self.input_entities] = total_entities
 
         loss, accuracy, prob = self.session.run(
             [self.loss, self.accuracy, self.prob], feed_dict)
@@ -248,7 +262,7 @@ class RNN_MODEL:
         return pos_embedding
 
     # embedding the position
-    def pos_embed(self,x):
+    def pos_embed(self, x):
         if x < -60:
             return 0
         if -60 <= x <= 60:
@@ -328,7 +342,6 @@ class RNN_MODEL:
             cell_single_fw = tf.contrib.rnn.DropoutWrapper(cell_single_fw, output_keep_prob=self.settings.keep_prob)
         return cell_single_fw
 
-
     def get_relation_feature(self, word_embedding):
         rnn_single_fw = self._dir_rnn()
         cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_single_fw] * self.settings.num_layers)
@@ -344,6 +357,9 @@ class RNN_MODEL:
                 (cell_output_forward, state_forward) = cell_forward.call(inputs_forward[:, step, :], state_forward)
 
         return cell_output_forward
+
+
+
 class Batch:
     def __init__(self, word_batch, pos1_batch, pos2_batch, relation_batch):
         self.word_batch = word_batch
@@ -351,6 +367,12 @@ class Batch:
         self.pos2_batch = pos2_batch
         self.relation_batch = relation_batch
 
+
 class RNN__CELL_TYPE(Enum):
-      LSTM = 1
-      GRU = 2
+    LSTM = 1
+    GRU = 2
+
+
+class WEIGHT_TYPE(Enum):
+    NORMAL = 1
+    RELATION = 2

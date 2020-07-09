@@ -63,6 +63,14 @@ def main(_):
     else:
         print("rnn cell type is error")
         sys.exit()
+
+    if args.weight == 'normal':
+        predict_settings.weight_type = network.WEIGHT_TYPE.NORMAL
+    elif args.weight == 'relation':
+        predict_settings.weight_type = network.WEIGHT_TYPE.RELATION
+    else:
+        print("weight_type is error")
+        sys.exit()
     
     with tf.Graph().as_default():
         sess = tf.Session()
