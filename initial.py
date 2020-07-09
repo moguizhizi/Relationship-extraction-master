@@ -231,11 +231,8 @@ def init():
             label = [0 for i in range(len(relation2id))]
             label[y_id] = 1
             test_ans[tup] = label
-            # print("test_ans[tup]:" + str(test_ans[tup]))
-            # print("test_ans[tup]:" + str(test_ans[tup][0]))
         else:
             y_id = relation
-            # print("test_ans[tup]" + str(test_ans[tup]))
             test_ans[tup][y_id] = 1
 
         sentence = content[3]
@@ -424,7 +421,7 @@ def get_entity_vec(entity_h, entity_t, length, word2id):
 
         standard_entitis[i] = word
 
-    return  standard_entitis
+    return standard_entitis
 
 
 init()
