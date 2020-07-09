@@ -42,6 +42,14 @@ def main(_):
         print("rnn cell type is error")
         sys.exit()
 
+    if args.weight == 'normal':
+        test_settings.weight_type = network.WEIGHT_TYPE.NORMAL
+    elif args.weight == 'relation':
+        test_settings.weight_type = network.WEIGHT_TYPE.RELATION
+    else:
+        print("weight_type is error")
+        sys.exit()
+
     precision = {}
 
     with tf.Graph().as_default():
@@ -70,13 +78,15 @@ def main(_):
                 test_word = np.load('./data/testall_word.npy',allow_pickle=True)
                 test_pos1 = np.load('./data/testall_pos1.npy',allow_pickle=True)
                 test_pos2 = np.load('./data/testall_pos2.npy',allow_pickle=True)
+                test_entitis = np.load('./data/test_entities.npy', allow_pickle=True)
                 allprob = []
                 acc = []
                 for i in range(int(len(test_word) / float(test_settings.big_num))):
                     prob, accuracy = mtest.process(test_word[i * test_settings.big_num:(i + 1) * test_settings.big_num],
                                                    test_pos1[i * test_settings.big_num:(i + 1) * test_settings.big_num],
                                                    test_pos2[i * test_settings.big_num:(i + 1) * test_settings.big_num],
-                                                   test_y[i * test_settings.big_num:(i + 1) * test_settings.big_num])
+                                                   test_y[i * test_settings.big_num:(i + 1) * test_settings.big_num],
+                                                   test_entitis[i * test_settings.big_num:(i + 1) * test_settings.big_num])
                     acc.append(np.mean(np.reshape(np.array(accuracy), (test_settings.big_num))))
                     prob = np.reshape(np.array(prob), (test_settings.big_num, test_settings.num_classes))
                     for single_prob in prob:

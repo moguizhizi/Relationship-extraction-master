@@ -51,6 +51,14 @@ def main(_):
         print("rnn cell type is error")
         sys.exit()
 
+    if args.weight == 'normal':
+        settings.weight_type = network.WEIGHT_TYPE.NORMAL
+    elif args.weight == 'relation':
+        settings.weight_type = network.WEIGHT_TYPE.RELATION
+    else:
+        print("weight_type is error")
+        sys.exit()
+
     big_num = settings.big_num
 
     with tf.Graph().as_default():
@@ -72,7 +80,7 @@ def main(_):
             merged_summary = tf.summary.merge_all()
             summary_writer = tf.summary.FileWriter(FLAGS.summary_dir + '/train_loss', sess.graph)
 
-            def train_step(word_batch, pos1_batch, pos2_batch, y_batch, entitis_batch,big_num):
+            def train_step(word_batch, pos1_batch, pos2_batch, y_batch, entitis_batch, big_num):
 
                 feed_dict = {}
                 total_shape = []
