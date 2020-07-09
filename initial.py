@@ -250,6 +250,8 @@ def init():
         en2pos = sentence.find(en2)
         if en2pos == -1:
             en2post = 0
+
+        entity_vec = get_entity_vec(en1, en2, args.max_entities_len, word2id)
             
         output = []
 
@@ -257,7 +259,12 @@ def init():
             word = word2id['BLANK']
             rel_e1 = pos_embed(i - en1pos)
             rel_e2 = pos_embed(i - en2pos)
-            output.append([word, rel_e1, rel_e2])
+            temp = []
+            temp.append(word)
+            temp.append(rel_e1)
+            temp.append(rel_e2)
+            temp.append(entity_vec)
+            output.append(temp)
 
         for i in range(min(fixlen, len(sentence))):
             word = 0
@@ -319,14 +326,32 @@ def init():
 
 def seperate():
     print('reading training data')
-    x_train = np.load('./data/train_x.npy',allow_pickle=True)
 
-    train_word = []
-    train_pos1 = []
-    train_pos2 = []
-    train_entities = []
+    print('seperating train all data')
+    train_entities, train_pos1, train_pos2, train_word = get_seperate_info('./data/train_x.npy')
 
-    print('seprating train data')
+    np.save('./data/train_word.npy', train_word)
+    np.save('./data/train_pos1.npy', train_pos1)
+    np.save('./data/train_pos2.npy', train_pos2)
+    np.save('./data/train_entities.npy', train_entities)
+
+    print('seperating test all data')
+    test_entities, test_pos1, test_pos2, test_word = get_seperate_info('./data/testall_x.npy')
+
+    np.save('./data/testall_word.npy', test_word)
+    np.save('./data/testall_pos1.npy', test_pos1)
+    np.save('./data/testall_pos2.npy', test_pos2)
+    np.save('./data/test_entities.npy', test_entities)
+
+
+def get_seperate_info(file):
+
+    x_train = np.load(file, allow_pickle=True)
+    seperate_word = []
+    seperate_pos1 = []
+    seperate_pos2 = []
+    seperate_entities = []
+
     for i in range(len(x_train)):
         word = []
         pos1 = []
@@ -346,53 +371,16 @@ def seperate():
             pos1.append(temp_pos1)
             pos2.append(temp_pos2)
             entities.append(temp_entities)
-        train_word.append(word)
-        train_pos1.append(pos1)
-        train_pos2.append(pos2)
-        train_entities.append(entities)
+        seperate_word.append(word)
+        seperate_pos1.append(pos1)
+        seperate_pos2.append(pos2)
+        seperate_entities.append(entities)
+    seperate_word = np.array(seperate_word)
+    seperate_pos1 = np.array(seperate_pos1)
+    seperate_pos2 = np.array(seperate_pos2)
+    seperate_entities = np.array(seperate_entities)
+    return seperate_entities, seperate_pos1, seperate_pos2, seperate_word
 
-    train_word = np.array(train_word)
-    train_pos1 = np.array(train_pos1)
-    train_pos2 = np.array(train_pos2)
-    train_entities = np.array(train_entities)
-
-    np.save('./data/train_word.npy', train_word)
-    np.save('./data/train_pos1.npy', train_pos1)
-    np.save('./data/train_pos2.npy', train_pos2)
-    np.save('./data/train_entities.npy', train_entities)
-
-    print('seperating test all data')
-    x_test = np.load('./data/testall_x.npy',allow_pickle=True)
-    test_word = []
-    test_pos1 = []
-    test_pos2 = []
-
-    for i in range(len(x_test)):
-        word = []
-        pos1 = []
-        pos2 = []
-        for j in x_test[i]:
-            temp_word = []
-            temp_pos1 = []
-            temp_pos2 = []
-            for k in j:
-                temp_word.append(k[0])
-                temp_pos1.append(k[1])
-                temp_pos2.append(k[2])
-            word.append(temp_word)
-            pos1.append(temp_pos1)
-            pos2.append(temp_pos2)
-        test_word.append(word)
-        test_pos1.append(pos1)
-        test_pos2.append(pos2)
-
-    test_word = np.array(test_word)
-    test_pos1 = np.array(test_pos1)
-    test_pos2 = np.array(test_pos2)
-
-    np.save('./data/testall_word.npy', test_word)
-    np.save('./data/testall_pos1.npy', test_pos1)
-    np.save('./data/testall_pos2.npy', test_pos2)
 
 # get answer metric for PR curve evaluation
 def getans():
