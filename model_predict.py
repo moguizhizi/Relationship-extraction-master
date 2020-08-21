@@ -55,6 +55,7 @@ def main(_):
     predict_settings.num_steps = args.max_sentence_len
     predict_settings.regularizer = args.regularizer
     predict_settings.entities_len = args.max_entities_len
+    predict_settings.num_layers = args.num_layers
 
     if args.cell == 'gru':
         predict_settings.cell_type = network.RNN__CELL_TYPE.GRU

@@ -33,6 +33,7 @@ def main(_):
     test_settings.regularizer = args.regularizer
     test_settings.num_steps = args.max_sentence_len
     test_settings.entities_len = args.max_entities_len
+    test_settings.num_layers = args.num_layers
 
     if args.cell == 'gru':
         test_settings.cell_type = network.RNN__CELL_TYPE.GRU
