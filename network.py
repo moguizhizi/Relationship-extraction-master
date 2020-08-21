@@ -148,9 +148,18 @@ class RNN_MODEL:
 
     def get_word_feature(self, pos1_embedding, pos2_embedding, word_embedding):
 
-        rnn_cell_forward, rnn_cell_backward = self._bi_dir_rnn()
-        cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_cell_forward] * self.settings.num_layers)
-        cell_backward = tf.contrib.rnn.MultiRNNCell([rnn_cell_backward] * self.settings.num_layers)
+        temp_forward = []
+        temp_backward = []
+
+        for i in range(self.settings.num_layers):
+            print("i:" + str(i))
+            rnn_cell_forward, rnn_cell_backward = self._bi_dir_rnn()
+            temp_forward.append(rnn_cell_forward)
+            temp_backward.append(rnn_cell_backward)
+
+        cell_forward = tf.contrib.rnn.MultiRNNCell(temp_forward, state_is_tuple=True)
+        cell_backward = tf.contrib.rnn.MultiRNNCell(temp_backward, state_is_tuple=True)
+
         initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
         initial_state_backward = cell_backward.zero_state(self.total_num, tf.float32)
         # embedding layer
@@ -358,8 +367,13 @@ class RNN_MODEL:
         return cell_single_fw
 
     def get_relation_feature(self, word_embedding):
-        rnn_single_fw = self._dir_rnn()
-        cell_forward = tf.contrib.rnn.MultiRNNCell([rnn_single_fw] * self.settings.num_layers)
+
+        temp_fw = []
+        for i in range(self.settings.num_layers):
+            rnn_single_fw = self._dir_rnn()
+            temp_fw.append(rnn_single_fw)
+
+        cell_forward = tf.contrib.rnn.MultiRNNCell(temp_fw)
         initial_state_forward = cell_forward.zero_state(self.total_num, tf.float32)
 
         inputs_forward = tf.nn.embedding_lookup(word_embedding, self.input_entities)
@@ -400,10 +414,7 @@ class RNN_MODEL:
             temp = tf.transpose(output_h, perm=[0, 2, 1])
             attention_r = tf.reduce_max(tf.multiply(words_weight, temp), 2)
 
-
         return attention_r
-
-
 
 
 class Batch:
