@@ -42,6 +42,7 @@ def main(_):
     settings.regularizer =args.regularizer
     settings.num_epochs = args.num_train_epochs
     settings.entities_len = args.max_entities_len
+    settings.num_layers = args.num_layers
 
     if args.cell == 'gru':
         settings.cell_type = network.RNN__CELL_TYPE.GRU

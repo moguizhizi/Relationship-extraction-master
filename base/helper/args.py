@@ -69,6 +69,9 @@ def get_args_parser():
     group2.add_argument('-repre', type=str, default='vector',
                         help='repre type')
 
+    group2.add_argument('-num_layers', type=int, default=1,
+                        help='the number of layers in rnn')
+
 
 
 
