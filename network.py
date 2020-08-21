@@ -152,7 +152,6 @@ class RNN_MODEL:
         temp_backward = []
 
         for i in range(self.settings.num_layers):
-            print("i:" + str(i))
             rnn_cell_forward, rnn_cell_backward = self._bi_dir_rnn()
             temp_forward.append(rnn_cell_forward)
             temp_backward.append(rnn_cell_backward)
